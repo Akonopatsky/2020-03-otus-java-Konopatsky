@@ -1,3 +1,4 @@
 rootProject.name = 'OtusGradle'
 include 'hw01-gradle'
-
+include 'L24-di:class-demo'
+include 'L24-di:homework-template'
