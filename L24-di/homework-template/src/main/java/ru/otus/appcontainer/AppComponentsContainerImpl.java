@@ -5,6 +5,7 @@ import ru.otus.appcontainer.api.AppComponent;
 import ru.otus.appcontainer.api.AppComponentsContainer;
 import ru.otus.appcontainer.api.AppComponentsContainerConfig;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,7 +23,7 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
 
     private void processConfig(Class<?> configClass) {
         checkConfigClass(configClass);
-        Reflections reflections = new Reflections("ru.otus");
+/*        Reflections reflections = new Reflections("ru.otus");
         Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(AppComponentsContainerConfig.class);
         Set<Method> beanMethods = annotatedClasses.stream().
                 flatMap(clazz -> getAllMethods(clazz, withAnnotation(AppComponent.class)).stream()).
@@ -31,7 +32,23 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
         List<AppComponent> annotations = beanMethods.stream().
                 map(method -> method.getAnnotation(AppComponent.class)).
                 collect(Collectors.toList());
-        annotations.stream().forEach(annotation -> System.out.println(annotation.order()));
+        annotations.stream().forEach(annotation -> System.out.println(annotation.order()));*/
+
+        try {
+            var configObject = configClass.getDeclaredConstructor().newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+
+        Reflections reflections = new Reflections("ru.otus");
+
+
 
         // You code here...
     }
