@@ -1,6 +1,5 @@
 package ru.otus.appcontainer;
 
-import org.reflections.Reflections;
 import ru.otus.appcontainer.api.AppComponent;
 import ru.otus.appcontainer.api.AppComponentsContainer;
 import ru.otus.appcontainer.api.AppComponentsContainerConfig;
@@ -10,45 +9,44 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.reflections.ReflectionUtils.*;
 
 public class AppComponentsContainerImpl implements AppComponentsContainer {
 
     private final List<Object> appComponents = new ArrayList<>();
     private final Map<String, Object> appComponentsByName = new HashMap<>();
 
-    public AppComponentsContainerImpl(Class<?> initialConfigClass) {
+    public AppComponentsContainerImpl(Class<?> initialConfigClass) throws Exception {
         processConfig(initialConfigClass);
     }
 
-    private void processConfig(Class<?> configClass) {
+    private void processConfig(Class<?> configClass) throws Exception {
         checkConfigClass(configClass);
-/*        Reflections reflections = new Reflections("ru.otus");
-        Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(AppComponentsContainerConfig.class);
-        Set<Method> beanMethods = annotatedClasses.stream().
-                flatMap(clazz -> getAllMethods(clazz, withAnnotation(AppComponent.class)).stream()).
-                collect(Collectors.toSet());
-        beanMethods.stream().forEach(bean -> System.out.println(bean));
-        List<AppComponent> annotations = beanMethods.stream().
-                map(method -> method.getAnnotation(AppComponent.class)).
-                collect(Collectors.toList());
-        annotations.stream().forEach(annotation -> System.out.println(annotation.order()));*/
 
-        try {
-            var configObject = configClass.getDeclaredConstructor().newInstance();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        }
+        var configObject = configClass.getDeclaredConstructor().newInstance();
+        System.out.println(configObject.getClass());
+        List<Method> declaredMethods = new ArrayList<>(Arrays.asList(configObject.getClass().getDeclaredMethods()));
+        declaredMethods.sort(Comparator.comparing(method -> method.getAnnotation(AppComponent.class).order()));
+        List<Method> appMethods = declaredMethods.stream()
+                .filter(method -> method.isAnnotationPresent(AppComponent.class))
+                .sorted(Comparator.comparing(method -> method.getAnnotation(AppComponent.class).order()))
+                .collect(Collectors.toList());
 
-        Reflections reflections = new Reflections("ru.otus");
+        appMethods.forEach(method -> {
+            var argsTypes = new ArrayList<>(Arrays.asList(method.getParameterTypes()));
+
+            var args = argsTypes.stream()
+                    .map(this::getAppComponent)
+                    .toArray();
 
 
+            try {
+                method.invoke(configObject, args);
+                appComponentsByName.put(method.getAnnotation(AppComponent.class).name(), method.invoke(configObject, args));
+                appComponents.add(method.invoke(configObject, args));
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        });
 
         // You code here...
     }
@@ -61,11 +59,11 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
 
     @Override
     public <C> C getAppComponent(Class<C> componentClass) {
-        return null;
+        return (C) appComponents.stream().filter(component -> componentClass.isInstance(component)).findFirst().get();
     }
 
     @Override
     public <C> C getAppComponent(String componentName) {
-        return null;
+        return (C) appComponentsByName.get(componentName);
     }
 }
