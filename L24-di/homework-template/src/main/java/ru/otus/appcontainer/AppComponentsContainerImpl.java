@@ -7,7 +7,6 @@ import ru.otus.appcontainer.api.AppComponentsContainerConfig;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class AppComponentsContainerImpl implements AppComponentsContainer {
@@ -21,34 +20,27 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
 
     private void processConfig(Class<?> configClass) throws Exception {
         checkConfigClass(configClass);
-
         var configObject = configClass.getDeclaredConstructor().newInstance();
-        System.out.println(configObject.getClass());
-        List<Method> declaredMethods = new ArrayList<>(Arrays.asList(configObject.getClass().getDeclaredMethods()));
-        declaredMethods.sort(Comparator.comparing(method -> method.getAnnotation(AppComponent.class).order()));
-        List<Method> appMethods = declaredMethods.stream()
+        Arrays.asList(configObject.getClass().getDeclaredMethods())
+                .stream()
                 .filter(method -> method.isAnnotationPresent(AppComponent.class))
                 .sorted(Comparator.comparing(method -> method.getAnnotation(AppComponent.class).order()))
-                .collect(Collectors.toList());
+                .forEach(method -> initAppComponent(configObject, method));
+    }
 
-        appMethods.forEach(method -> {
-            var argsTypes = new ArrayList<>(Arrays.asList(method.getParameterTypes()));
-
-            var args = argsTypes.stream()
-                    .map(this::getAppComponent)
-                    .toArray();
-
-
-            try {
-                method.invoke(configObject, args);
-                appComponentsByName.put(method.getAnnotation(AppComponent.class).name(), method.invoke(configObject, args));
-                appComponents.add(method.invoke(configObject, args));
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
-            }
-        });
-
-        // You code here...
+    private void initAppComponent(Object configObject, Method method) {
+        var args = Arrays.asList(method.getParameterTypes()).stream()
+                .map(this::getAppComponent)
+                .toArray();
+        try {
+            method.invoke(configObject, args);
+            String name = method.getAnnotation(AppComponent.class).name();
+            Object appObject = method.invoke(configObject, args);
+            appComponentsByName.put(name, appObject);
+            appComponents.add(appObject);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
     }
 
     private void checkConfigClass(Class<?> configClass) {
