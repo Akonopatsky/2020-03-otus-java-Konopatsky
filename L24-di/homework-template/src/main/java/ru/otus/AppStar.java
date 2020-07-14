@@ -1,9 +1,7 @@
 package ru.otus;
 
 import ru.otus.appcontainer.AppComponentsContainerImpl;
-import ru.otus.appcontainer.AppComponentsContainerPackageProcessing;
 import ru.otus.appcontainer.api.AppComponentsContainer;
-import ru.otus.config.AppConfig;
 import ru.otus.services.GameProcessor;
 
 /*
@@ -17,7 +15,7 @@ PS Приложение представляет из себя тренажер 
 public class AppStar {
 
     public static void main(String[] args) throws Exception {
-        AppComponentsContainer container = new AppComponentsContainerPackageProcessing("ru.otus");
+        AppComponentsContainer container = new AppComponentsContainerImpl("ru.otus");
         GameProcessor gameProcessor = container.getAppComponent(GameProcessor.class);
         gameProcessor.startGame();
     }
